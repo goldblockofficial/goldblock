@@ -3,7 +3,7 @@ name: GoldBlock — Newsletter Hebdomadaire
 on:
   schedule:
     - cron: '0 7 * * 1'  # Chaque lundi à 7h UTC = 8h Paris
-  workflow_dispatch:       # Déclenchement manuel
+  workflow_dispatch:
 
 jobs:
   generate:
@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Générer la newsletter GoldBlock (XAUUSD + BTCUSD)
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
@@ -22,9 +22,9 @@ jobs:
 
           const SB_URL     = process.env.SUPABASE_URL;
           const SB_SERVICE = process.env.SUPABASE_SERVICE_KEY;
-          const CLAUDE_KEY = process.env.ANTHROPIC_API_KEY;
+          const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-          function request(options, body) {
+          function httpRequest(options, body) {
             return new Promise((resolve, reject) => {
               const req = https.request(options, res => {
                 let data = '';
@@ -42,64 +42,64 @@ jobs:
 
           async function generateNewsletter(actif) {
             const now = new Date();
-            const today = now.toLocaleDateString('fr-FR', {
-              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-              timeZone: 'Europe/Paris'
-            });
-
             const lastMonday = new Date(now); lastMonday.setDate(now.getDate() - 7);
             const lastSunday = new Date(now); lastSunday.setDate(now.getDate() - 1);
             const nextFriday = new Date(now); nextFriday.setDate(now.getDate() + 4);
             const fmt = d => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+            const today = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
             const semainePasse = fmt(lastMonday) + ' – ' + fmt(lastSunday);
             const semaineCours = fmt(now) + ' – ' + fmt(nextFriday);
             const semaineLabel = 'Semaine du ' + fmt(now);
 
-            const prompt = `Tu es un analyste de marché expert GoldBlock. Nous sommes le ${today}.
+            const prompt = `Tu es un analyste de marché expert. Nous sommes le ${today}.
 
-Génère la NEWSLETTER HEBDOMADAIRE COMPLÈTE pour ${actif} en 2 parties :
-1. BILAN SEMAINE PASSÉE (${semainePasse})
-2. ANALYSE & PROJECTIONS SEMAINE EN COURS (${semaineCours})
+Génère la NEWSLETTER HEBDOMADAIRE pour ${actif} en 2 parties :
+1. BILAN SEMAINE PASSÉE (${semainePasse}) — mouvements, événements, niveaux touchés
+2. PROJECTIONS SEMAINE EN COURS (${semaineCours}) — setup, calendrier économique, scénarios
 
-Utilise web_search pour : prix actuels et de la semaine passée de ${actif}, événements macro passés et à venir, DXY/VIX/taux US 10Y actuels, contexte géopolitique.
+Recherche sur internet : prix actuel ${actif}, événements macro passés et à venir, DXY/VIX/taux US 10Y, contexte géopolitique.
 
-Retourne UNIQUEMENT ce JSON valide (sans markdown) :
+Réponds UNIQUEMENT avec ce JSON valide (sans markdown ni backticks) :
 {
   "actif": "${actif}",
-  "titre": "Titre accrocheur avec ${actif} et la semaine",
+  "titre": "Titre accrocheur avec ${actif}",
   "sous_titre": "Prix actuel + bilan + projection en 1 ligne",
   "score": <1-5>,
   "semaine": "${semaineLabel}",
-  "contenu": "<section class='nl-bilan'><h2>📅 Bilan Semaine Passée — ${semainePasse}</h2><table><tr><th>Jour</th><th>Événement</th><th>Impact ${actif}</th></tr>...</table><p>Résumé narratif des mouvements, niveaux touchés, retournements.</p></section><section class='nl-macro'><h2>🌍 Contexte Macro</h2><table><tr><th>Indicateur</th><th>Valeur</th><th>Tendance</th><th>Impact</th></tr>...</table></section><section class='nl-tech'><h2>📊 Analyse Technique</h2><table><tr><th>Type</th><th>Niveau</th><th>Signification</th></tr>...</table><p>Structure de marché actuelle, OB, Fibonacci, SMC.</p></section><section class='nl-cal'><h2>📅 Calendrier Économique ${semaineCours}</h2><table><tr><th>Jour</th><th>Heure</th><th>Événement</th><th>Impact</th></tr>...</table></section><section class='nl-setup'><h2>🎯 Setup de Trade</h2>[PE/SL/TP1/TP2/TP3 si score>=3, sinon AUCUNE OPPORTUNITÉ]</section><section class='nl-score'><h2>⭐ Notation du Setup</h2><table><tr><th>Critère</th><th>Score</th><th>Commentaire</th></tr>...</table></section><section class='nl-scenarios'><h2>🔮 Scénarios de la Semaine</h2><p><strong>Haussier :</strong>...</p><p><strong>Baissier :</strong>...</p><p><strong>Neutre :</strong>...</p></section>"
+  "contenu": "<section class='nl-bilan'><h2>📅 Bilan Semaine Passée — ${semainePasse}</h2><table border='1'><tr><th>Jour</th><th>Événement</th><th>Impact ${actif}</th></tr>...DONNÉES RÉELLES...</table><p>Résumé narratif.</p></section><section class='nl-macro'><h2>🌍 Contexte Macro</h2><table border='1'><tr><th>Indicateur</th><th>Valeur</th><th>Tendance</th><th>Impact</th></tr>...DXY/VIX/TAUX RÉELS...</table></section><section class='nl-tech'><h2>📊 Analyse Technique ${actif}</h2><table border='1'><tr><th>Type</th><th>Niveau</th><th>Signification</th></tr>...NIVEAUX RÉELS...</table><p>Structure de marché, SMC, Fibonacci.</p></section><section class='nl-cal'><h2>📅 Calendrier ${semaineCours}</h2><table border='1'><tr><th>Jour</th><th>Heure Paris</th><th>Événement</th><th>Impact</th></tr>...VRAIS ÉVÉNEMENTS...</table></section><section class='nl-setup'><h2>🎯 Setup de Trade</h2><p>PE/SL/TP1/TP2/TP3 avec prix réels si score>=3, sinon AUCUNE OPPORTUNITÉ CLAIRE</p></section><section class='nl-scenarios'><h2>🔮 Scénarios</h2><p><strong>🟢 Haussier :</strong> ...</p><p><strong>🔴 Baissier :</strong> ...</p><p><strong>⚪ Neutre :</strong> ...</p></section>"
 }`;
 
             const body = JSON.stringify({
-              model: 'claude-opus-4-6',
-              max_tokens: 12000,
-              system: 'Tu es analyste GoldBlock. Réponds uniquement en JSON valide sans markdown.',
-              tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-              messages: [{ role: 'user', content: prompt }]
+              contents: [{ parts: [{ text: prompt }] }],
+              tools: [{ google_search: {} }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 8192 }
             });
 
+            const path = '/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
             const options = {
-              hostname: 'api.anthropic.com',
-              path: '/v1/messages',
+              hostname: 'generativelanguage.googleapis.com',
+              path,
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': CLAUDE_KEY,
-                'anthropic-version': '2023-06-01',
                 'Content-Length': Buffer.byteLength(body)
               }
             };
 
-            console.log('[GoldBlock] Generation ' + actif + '...');
-            const data = await request(options, body);
-            if (data.error) throw new Error('API: ' + data.error.message);
-            const textBlock = data.content?.find(b => b.type === 'text');
-            if (!textBlock) throw new Error('Pas de texte pour ' + actif);
-            let text = textBlock.text.trim().replace(/^```json\s*/i,'').replace(/```\s*$/i,'').trim();
-            return JSON.parse(text);
+            console.log('[GoldBlock] Génération ' + actif + ' avec Gemini...');
+            const data = await httpRequest(options, body);
+
+            if (data.error) throw new Error('Gemini API: ' + data.error.message);
+
+            const text = data.candidates?.[0]?.content?.parts
+              ?.filter(p => p.text)
+              ?.map(p => p.text)
+              ?.join('') || '';
+
+            if (!text) throw new Error('Pas de réponse Gemini pour ' + actif);
+
+            const clean = text.trim().replace(/^```json\s*/i,'').replace(/```\s*$/i,'').trim();
+            return JSON.parse(clean);
           }
 
           async function storeInSupabase(a) {
@@ -113,27 +113,29 @@ Retourne UNIQUEMENT ce JSON valide (sans markdown) :
               hostname: url.hostname, path: url.pathname, method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'apikey': SB_SERVICE, 'Authorization': 'Bearer ' + SB_SERVICE,
-                'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(body)
+                'apikey': SB_SERVICE,
+                'Authorization': 'Bearer ' + SB_SERVICE,
+                'Prefer': 'return=minimal',
+                'Content-Length': Buffer.byteLength(body)
               }
             };
-            await request(options, body);
-            console.log('[GoldBlock] Stocke ' + a.actif + ' score:' + a.score + '/5 — ' + a.titre);
+            await httpRequest(options, body);
+            console.log('[GoldBlock] ✅ ' + a.actif + ' stocké — score: ' + a.score + '/5 — ' + a.titre);
           }
 
           async function main() {
-            console.log('[GoldBlock] Newsletter hebdomadaire...');
+            console.log('[GoldBlock] 🚀 Newsletter hebdomadaire...');
             for (const actif of ['XAUUSD', 'BTCUSD']) {
               try {
                 const nl = await generateNewsletter(actif);
                 await storeInSupabase(nl);
-                await new Promise(r => setTimeout(r, 8000));
+                await new Promise(r => setTimeout(r, 5000));
               } catch(err) {
-                console.error('[GoldBlock] ERREUR ' + actif + ':', err.message);
+                console.error('[GoldBlock] ❌ ' + actif + ':', err.message);
                 process.exit(1);
               }
             }
-            console.log('[GoldBlock] 2 newsletters publiees !');
+            console.log('[GoldBlock] ✅ 2 newsletters publiées !');
           }
 
           main();
