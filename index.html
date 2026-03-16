@@ -1100,6 +1100,12 @@ async function doSignup(){
       };
       sS(u); applyS(u);
       showPage('member');
+      // Email de bienvenue gratuit
+      fetch('https://gb-signals.goldblockofficial.workers.dev/api/welcome-email', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({to: em, name: nm, isPremium: false})
+      }).catch(()=>{});
       openPayment();
     }
   } catch(e) {
@@ -1167,6 +1173,16 @@ function applyS(u){
   document.getElementById('me').textContent=u.email;
 
   const ip = u.premium;
+  const wasAlreadyPremium = gS()?.premium === true;
+
+  // Email Premium si passage de gratuit → premium
+  if (ip && !wasAlreadyPremium) {
+    fetch('https://gb-signals.goldblockofficial.workers.dev/api/welcome-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({to: u.email, name: u.name, isPremium: true})
+    }).catch(()=>{});
+  }
 
   // Badge
   document.getElementById('mbadge').innerHTML = ip
